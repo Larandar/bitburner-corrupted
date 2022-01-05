@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "dev",
+			"problemMatcher": ["$tsc"],
+            "label": "BitBurner Corrupted: Watch & Build (dev)",
+            "detail": "npx tsc -w",
+			"presentation": {
+				"reveal": "silent",
+				"panel": "dedicated",
+				"clear": true
+			}
+        },
+        {
+            "type": "npm",
+            "script": "update",
+            "problemMatcher": [],
+            "label": "BitBurner Corrupted: Update Netscript Definition",
+            "detail": "curl @danielyxie/bitburner:NetscriptDefinitions.d.ts"
+        }
+    ]
+}

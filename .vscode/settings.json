@@ -1,0 +1,17 @@
+{
+    // Bitburner Extension Settings
+    "bitburner.scriptRoot": "./dist/",
+    "bitburner.fileWatcher.enable": true,
+    "bitburner.showPushSuccessNotification": true,
+
+    // Autosave Settings
+    "files.autoSave": "off",
+
+    // Autosnippet settings
+    "autoSnippet.snippets": [
+        {
+            "pattern": "**/*.ts",
+            "snippet": "ns-template"
+        },
+    ],
+}

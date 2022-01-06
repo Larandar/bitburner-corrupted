@@ -41,6 +41,11 @@ export async function main(ns: NS): Promise<void> {
     // Save corruption to global state
     let store = { corrupted }
     await ns.write("/_store/cthulhu.txt", [JSON.stringify(store)], "w")
+
+    // Sacrifice the corrupted to Zvilpogghua
+    if (!args["corrupt-only"]) {
+        ns.spawn("zvilpogghua.js", 1)
+    }
 }
 
 

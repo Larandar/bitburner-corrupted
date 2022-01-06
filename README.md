@@ -34,8 +34,8 @@ Therefore concepts are translated as such:
 
 There is a workspace file in `.vscode` which contains the recommended settings for all of these:
 
-- [vscode-bitburner-connector](https://github.com/hexnaught/vscode-bitburner-connector)
-  ([vscode extension marketplace](https://marketplace.visualstudio.com/items?itemName=hexnaught.vscode-bitburner-connector))
+- [vscode-bitburner-connector](https://github.com/bitburner-official/bitburner-vscode)
+  ([vscode extension marketplace](https://marketplace.visualstudio.com/items?itemName=bitburner.bitburner-vscode-integration))
   to upload your files into the game
 - [auto-snippet](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.auto-snippet)
   to automate inserting the file template in `.vscode/snippets.code-snippets`

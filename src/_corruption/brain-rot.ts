@@ -24,9 +24,9 @@ const THRESHOLD_MAX_SECURITY = 2.5
  */
 export async function main(ns: NS): Promise<void> {
     const args = ns.flags([["help", false], ["corrupt-only", false]])
-    if (args.help || args._.length > 1) {
+    if (args.help || args._.length > 2) {
         ns.tprint([
-            `Usage: run ${ns.getScriptName()} [HOST]`,
+            `Usage: run ${ns.getScriptName()} [SACRIFICE [COUNT]]`,
             `Corrupt the brain of an unwilling sacrifice.`,
             `Example:`,
             `  > run ${ns.getScriptName()} -t 8 foodnstuff`
@@ -37,19 +37,19 @@ export async function main(ns: NS): Promise<void> {
     ns.print("[[ SILENCING THE VOICES ]]")
     SILENT_FUNCTIONS.forEach(ns.disableLog)
 
-    let target = args._.length > 0 ? ns.args[0] as string : ns.getHostname() // RAM: 0.05GB
-    if (target == "home" || target.startsWith("cult1st-")) {
+    let sacrifice = args._.length > 0 ? args._[0] as string : ns.getHostname() // RAM: 0.05GB
+    if (sacrifice == "home" || sacrifice.startsWith("cult1st-")) {
         ns.toast(`Prevented corruption of the cult's resources from ${ns.getHostname()}.`, "error", 5000)
         return
     }
 
-    let moneyThresh = ns.getServerMaxMoney(target) * THRESHOLD_MONEY_PERCENT // RAM: 0.1GB
-    let securityThresh = ns.getServerMinSecurityLevel(target) + THRESHOLD_MAX_SECURITY // RAM: 0.1GB
+    let rounds = args._.length > 1 ? args._[1] as number : Number.MAX_SAFE_INTEGER // RAM: 0.1GB
 
-    let rounds = ns.args.length > 1 ? ns.args[1] as number : Number.MAX_SAFE_INTEGER // RAM: 0.1GB
+    let moneyThresh = ns.getServerMaxMoney(sacrifice) * THRESHOLD_MONEY_PERCENT // RAM: 0.1GB
+    let securityThresh = ns.getServerMinSecurityLevel(sacrifice) + THRESHOLD_MAX_SECURITY // RAM: 0.1GB
 
     for (let i = 0; i < rounds; i++) {
-        await corrupt(ns, target, securityThresh, moneyThresh)
+        await corrupt(ns, sacrifice, securityThresh, moneyThresh)
         await ns.sleep(500)
     }
 }

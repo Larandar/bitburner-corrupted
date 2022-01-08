@@ -12,8 +12,7 @@ const SILENT_FUNCTIONS = [
 ]
 
 const INFECTION_LENGTH_PRE_100 = 60 * 1000 // 1 minutes
-const INFECTION_LENGTH_POST_100 = 5 * 60 * 1000 // 5 minutes
-
+const INFECTION_LENGTH_POST_100 = 2 * 60 * 1000 // 2 minutes
 
 /**
  * Let Zvilpoggha feast on the corrupted
@@ -63,7 +62,7 @@ export async function main(ns: NS): Promise<void> {
             if (numThreads == 0) continue
 
             // Run to fill half the running time (so we don't have to update too often)
-            let count = Math.max(Math.floor((infection_length / 2) / ns.getHackTime(target)), 1)
+            let count = Math.max(Math.floor((infection_length / 4) / ns.getHackTime(target)), 1)
 
             ns.print(`Infecting ${target} with ${script} (${count}x)`)
             ns.exec(script, target, numThreads, sacrifice, count)
@@ -84,22 +83,25 @@ export async function loadStore(ns: NS, service: string): Promise<{ [key: string
     return {}
 }
 
+/**
+ * Choose the juiceiest sacrifice from the predefined list in case there is Yog-Sothoth is not running
+ *
+ * @param ns NetScript object
+ * @returns the choosen sacrifice
+ */
 export async function chooseSacrifice(ns: NS): Promise<string> {
     // TODO: Interoperation with Yog-Sothoth
     // NOTE: This is a very naive implementation
 
     let cthulhu = (await loadStore(ns, "cthulhu")) as { [key: string]: string[] }
-    const corrupted: Set<string> = new Set(cthulhu.corrupted)
+    const subdued: Set<string> = new Set(cthulhu.subdued)
 
-    if (corrupted.size == 0) {
+    let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"].filter(s => subdued.has(s))
+
+    if (juiceiests.length == 0) {
         ns.toast("[[ YOG-SOTHOTH SHIM ]] !! No corrupted servers found !!", "error", 1000)
         ns.exit()
-        return "" // Never reached
-    } else if (corrupted.has("joesguns")) {
-        return "joesguns"
-    } else if (corrupted.has("foodnstuff")) {
-        return "foodnstuff"
-    } else {
-        return Array.from(corrupted)[Math.floor(Math.random() * corrupted.size)]
     }
+
+    return juiceiests.shift() as string
 }

@@ -43,7 +43,7 @@ export async function main(ns: NS): Promise<void> {
         return
     }
 
-    let rounds = args._.length > 1 ? args._[1] as number : Number.MAX_SAFE_INTEGER // RAM: 0.1GB
+    let rounds = args._.length > 1 ? args._[1] as number : Number.MAX_SAFE_INTEGER
 
     let moneyThresh = ns.getServerMaxMoney(sacrifice) * THRESHOLD_MONEY_PERCENT // RAM: 0.1GB
     let securityThresh = ns.getServerMinSecurityLevel(sacrifice) + THRESHOLD_MAX_SECURITY // RAM: 0.1GB

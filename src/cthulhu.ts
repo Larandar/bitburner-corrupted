@@ -37,15 +37,15 @@ export async function main(ns: NS): Promise<void> {
 
     // Spread the corruption
     const corrupted = await spreadCorruption(ns)
-
+    const subdued = corrupted.filter(server =>
+        ns.getServerRequiredHackingLevel(server) <= ns.getHackingLevel()
+    )
     // Save corruption to global state
-    let store = { corrupted }
+    let store = { corrupted, subdued }
     await ns.write("/_store/cthulhu.txt", [JSON.stringify(store)], "w")
 
-    // Sacrifice the corrupted to Zvilpogghua
-    if (!args["corrupt-only"]) {
-        ns.spawn("zvilpogghua.js", 1)
-    }
+    let availableRamGB = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
+    if (!args["corrupt-only"] && availableRamGB > 6) ns.spawn("zvilpogghua.js")
 }
 
 
@@ -69,13 +69,12 @@ export async function spreadCorruption(ns: NS): Promise<string[]> {
         scanned.add(target)
 
         // We don't corrupt ourselves
-        if (target != "home" && await breach(ns, target)) {
-            corrupted.push(target)
+        if (target != "home") {
+            if (await breach(ns, target)) corrupted.push(target)
         }
 
         // Continue spreading corruption from target server
-        const hackables = await scanHackables(ns, target)
-        queue.push(...hackables)
+        queue.push(...ns.scan(target))
 
         // Wait a bit to avoid spamming the event loop
         await ns.sleep(100)
@@ -89,20 +88,6 @@ export async function spreadCorruption(ns: NS): Promise<string[]> {
 // SECTION: Low level API
 
 /**
- * Scan hackable servers directly connected to the target node.
- *
- * @usage 0.35 GB of RAM required
- *
- * @param {NS} ns NetScript instance
- * @param {string} target Target server
- **/
-export async function scanHackables(ns: NS, target: string): Promise<string[]> {
-    return ns.scan(target).filter(server =>
-        ns.getServerRequiredHackingLevel(server) <= ns.getHackingLevel()
-    )
-}
-
-/**
  * Breach the target server and deploy corruption script.
  *
  * @usage 1.3 GB of RAM required
@@ -113,11 +98,6 @@ export async function scanHackables(ns: NS, target: string): Promise<string[]> {
 export async function breach(ns: NS, target: string): Promise<boolean> {
     // Skip if already breached
     if (!ns.hasRootAccess(target)) {
-        if (ns.getServerRequiredHackingLevel(target) > ns.getHackingLevel()) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires a higher hacking level`, "warning", 2500)
-            return false
-        }
-
         if (ns.getServerNumPortsRequired(target) >= 6) {
             ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires 6 or more opened ports`, "warning", 2500)
             return false
@@ -165,12 +145,8 @@ export async function breach(ns: NS, target: string): Promise<boolean> {
     }
 
     // Transfer updated version of scripts
-    let corruptionPropagation = await Promise.all(
-        ns.ls("home")
-            .filter(f => f.startsWith("/_corruption/") && f.endsWith(".js"))
-            .map(async script => ns.scp(script, "home", target))
-    )
-    return corruptionPropagation.every(f => f)
+    let scripts = ns.ls("home").filter(f => f.startsWith("/_corruption/") && f.endsWith(".js"))
+    return await ns.scp(scripts, "home", target)
 }
 
 // !SECTION

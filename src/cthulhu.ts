@@ -76,6 +76,7 @@ export async function main(ns: NS): Promise<void> {
 
     // Wake up the sleeping old-ones
     let availableRamGB = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
+    if (availableRamGB > 12) ns.exec("atlach-nacha.js", ns.getHostname())
     if (!args["corrupt-only"] && availableRamGB > 6) ns.spawn("zvilpogghua.js")
 }
 

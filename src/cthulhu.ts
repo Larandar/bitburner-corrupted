@@ -65,11 +65,11 @@ export async function main(ns: NS): Promise<void> {
         let exploitingThreads = Math.min(Math.floor((availableRamGB - 12) / 1.75), 120)
         if (exploitingThreads > 0) {
             ns.toast(`Corrupting n00dles with ${exploitingThreads} threads`)
-            ns.exec("/_corruption/hack.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit", "n00dles")
+            ns.exec("/_corruption/hack.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-0", "n00dles")
+            ns.exec("/_corruption/hack.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-1", "n00dles")
+            ns.exec("/_corruption/hack.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-2", "n00dles")
             ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-0", "n00dles")
             ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-1", "n00dles")
-            ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-2", "n00dles")
-            ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-3", "n00dles")
             ns.exec("/_corruption/weaken.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit", "n00dles")
         }
     }
@@ -77,7 +77,12 @@ export async function main(ns: NS): Promise<void> {
     // Wake up the sleeping old-ones
     let availableRamGB = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
     if (availableRamGB > 12) ns.exec("atlach-nacha.js", ns.getHostname())
-    if (!args["corrupt-only"] && availableRamGB > 6) ns.spawn("zvilpogghua.js")
+    if (!args["corrupt-only"] && availableRamGB > 6) {
+        ns.ps(ns.getHostname())
+            .filter(process => process.filename == "zvilpogghua.js")
+            .forEach(process => ns.kill(process.filename, ns.getHostname(), ...process.args))
+        ns.spawn("zvilpogghua.js")
+    }
 }
 
 

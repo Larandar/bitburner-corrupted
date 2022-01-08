@@ -12,12 +12,17 @@ import { NS } from '../NetscriptDefinitions';
  * @param {NS} ns NetScript instance
  */
 export async function main(ns: NS): Promise<void> {
-    const args = ns.flags([["help", false], ["corrupt-only", false]])
+    const args = ns.flags([
+        ["help", false],
+        ["corrupt-only", false],
+        ["bootstrap", false]
+    ])
     if (args.help || args._.length > 0) {
         ns.tprint([
             `Usage: run ${ns.getScriptName()} [--corrupt-only]`,
             `Pray to the great Cthulhu that corruption be spread.`,
             `Flags:`,
+            `  --bootstrap: Start the one-time only scripts (exploit of n00dles).`,
             `  --corrupt-only: Only corrupt servers, do not call Zvilpogghua after.`,
             `Example:`,
             `  > run ${ns.getScriptName()}`
@@ -44,6 +49,32 @@ export async function main(ns: NS): Promise<void> {
     let store = { corrupted, subdued }
     await ns.write("/_store/cthulhu.txt", [JSON.stringify(store)], "w")
 
+    // Bootstrap the corruption
+    if (args["bootstrap"]) {
+        // Kill scripts on n00dles
+        // NOTE: `kill` and `ps` are used later in this script therefore don't add ram cost (`killall` +1GB)
+        ns.ps("n00dles").forEach(process => ns.kill(process.filename, "n00dles", ...process.args))
+        ns.exec("/_corruption/hack.js", "n00dles", 2, "n00dles")
+
+        // Clear all current corruption run
+        ns.ps(ns.getHostname())
+            .filter(process => process.filename.startsWith("/_corruption/"))
+            .forEach(process => ns.kill(process.filename, ns.getHostname(), ...process.args))
+
+        let availableRamGB = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
+        let exploitingThreads = Math.min(Math.floor((availableRamGB - 12) / 1.75), 120)
+        if (exploitingThreads > 0) {
+            ns.toast(`Corrupting n00dles with ${exploitingThreads} threads`)
+            ns.exec("/_corruption/hack.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit", "n00dles")
+            ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-0", "n00dles")
+            ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-1", "n00dles")
+            ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-2", "n00dles")
+            ns.exec("/_corruption/grow.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit-3", "n00dles")
+            ns.exec("/_corruption/weaken.js", ns.getHostname(), exploitingThreads / 6, "--uid", "exploit", "n00dles")
+        }
+    }
+
+    // Wake up the sleeping old-ones
     let availableRamGB = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
     if (!args["corrupt-only"] && availableRamGB > 6) ns.spawn("zvilpogghua.js")
 }

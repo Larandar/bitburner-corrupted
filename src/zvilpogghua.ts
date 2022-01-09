@@ -86,7 +86,8 @@ export async function loadStore(ns: NS, service: string): Promise<{ [key: string
 /**
  * Choose the juiceiest sacrifice from the predefined list in case there is Yog-Sothoth is not running
  *
- * @param ns NetScript object
+ * @param {NS} ns NetScript object
+ *
  * @returns the choosen sacrifice
  */
 export async function chooseSacrifice(ns: NS): Promise<string> {
@@ -96,12 +97,14 @@ export async function chooseSacrifice(ns: NS): Promise<string> {
     let cthulhu = (await loadStore(ns, "cthulhu")) as { [key: string]: string[] }
     const subdued: Set<string> = new Set(cthulhu.subdued)
 
-    let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"].filter(s => subdued.has(s))
+    let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"]
+        .filter(s => subdued.has(s))
+        .filter((_, i) => i < 3)
 
     if (juiceiests.length == 0) {
         ns.toast("[[ YOG-SOTHOTH SHIM ]] !! No corrupted servers found !!", "error", 1000)
         ns.exit()
     }
 
-    return juiceiests.shift() as string
+    return juiceiests[Math.floor(Math.random() * juiceiests.length)] as string
 }

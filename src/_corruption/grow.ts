@@ -33,3 +33,10 @@ export async function main(ns: NS): Promise<void> {
         await ns.sleep(500)
     }
 }
+
+// Unsuported public API yet for autocomplete
+type ServerData = { [key: string]: any }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function autocomplete(data: ServerData, args: string[]): string[] {
+    return [...data.servers]
+}

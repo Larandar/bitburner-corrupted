@@ -1,6 +1,5 @@
 import { NS } from '../../NetscriptDefinitions';
 
-
 const SILENT_FUNCTIONS = [
     "disableLog",
     "sleep",
@@ -75,4 +74,11 @@ export async function corrupt(ns: NS, target: string, securityThresh: number, mo
         ns.print(`** Almightty Zvilpogghua accept this ripe offering! **`)
         await ns.hack(target); // RAM: 0.1GB
     }
+}
+
+// Unsuported public API yet for autocomplete
+type ServerData = { [key: string]: any }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function autocomplete(data: ServerData, args: string[]): string[] {
+    return [...data.servers]
 }

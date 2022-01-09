@@ -41,7 +41,7 @@ export async function main(ns: NS): Promise<void> {
     SILENT_FUNCTIONS.forEach(ns.disableLog)
 
     let cthulhu = (await loadStore(ns, "cthulhu")) as { [key: string]: string[] }
-    const corrupted = cthulhu.corrupted
+    const corrupted = cthulhu.corrupted.concat(["home"])
 
     const infection_length = ns.getHackingLevel() >= 100 ? INFECTION_LENGTH_POST_100 : INFECTION_LENGTH_PRE_100
 
@@ -57,15 +57,17 @@ export async function main(ns: NS): Promise<void> {
 
             let script = "/_corruption/brain-rot.js"
             let availableRam = ns.getServerMaxRam(target) - ns.getServerUsedRam(target)
-            let numThreads = Math.floor(availableRam / ns.getScriptRam(script, target))
 
-            if (numThreads == 0) continue
+            if (target == "home") availableRam -= 256 // 256GB RAM of reserve on home server
+
+            let possibleThreads = Math.floor(availableRam / ns.getScriptRam(script, target))
+            if (possibleThreads == 0) continue
 
             // Run to fill half the running time (so we don't have to update too often)
             let count = Math.max(Math.floor((infection_length / 4) / ns.getHackTime(target)), 1)
 
             ns.print(`Infecting ${target} with ${script} (${count}x)`)
-            ns.exec(script, target, numThreads, sacrifice, count)
+            ns.exec(script, target, possibleThreads, sacrifice, count)
         }
         await ns.sleep(1000)
     }

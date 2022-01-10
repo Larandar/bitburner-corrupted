@@ -151,35 +151,30 @@ export async function breach(ns: NS, target: string): Promise<boolean> {
         if (ns.fileExists("SQLInject.exe", "home")) {
             ns.sqlinject(target)
         } else if (ns.getServerNumPortsRequired(target) >= 5) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires the SQLInject.exe program`, "warning", 2500)
             return false
         }
 
         if (ns.fileExists("HTTPWorm.exe", "home")) {
             ns.httpworm(target)
         } else if (ns.getServerNumPortsRequired(target) >= 4) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires the HTTPWorm.exe program`, "warning", 2500)
             return false
         }
 
         if (ns.fileExists("relaySMTP.exe", "home")) {
             ns.relaysmtp(target)
         } else if (ns.getServerNumPortsRequired(target) >= 3) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires the relaySMTP.exe program`, "warning", 2500)
             return false
         }
 
         if (ns.fileExists("FTPCrack.exe", "home")) {
             ns.ftpcrack(target)
         } else if (ns.getServerNumPortsRequired(target) >= 2) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires the FTPCrack.exe program`, "warning", 2500)
             return false
         }
 
         if (ns.fileExists("BruteSSH.exe", "home")) {
             ns.brutessh(target)
         } else if (ns.getServerNumPortsRequired(target) >= 1) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires the BruteSSH.exe program`, "warning", 2500)
             return false
         }
 

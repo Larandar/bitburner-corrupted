@@ -50,12 +50,13 @@ export async function main(ns: NS): Promise<void> {
 
     // Sacrifice the corrupted to Zvilpogghua
     while (performance.measure(infection_id, infection_id).duration < infection_length) {
-        let sacrifice = await chooseSacrifice(ns)
         for (let target of corrupted) {
+            let script = "/_corruption/brain-rot.js"
             // Infection not yet finished
             if (ns.scriptRunning("/_corruption/brain-rot.js", target)) continue
 
-            let script = "/_corruption/brain-rot.js"
+
+            let sacrifice = await chooseSacrifice(ns)
             let availableRam = ns.getServerMaxRam(target) - ns.getServerUsedRam(target)
 
             if (target == "home") availableRam -= 256 // 256GB RAM of reserve on home server

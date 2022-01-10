@@ -62,7 +62,7 @@ export async function main(ns: NS): Promise<void> {
             if (target == "home") availableRam -= 256 // 256GB RAM of reserve on home server
 
             let possibleThreads = Math.floor(availableRam / ns.getScriptRam(script, target))
-            if (possibleThreads == 0) continue
+            if (possibleThreads <= 0) continue
 
             // Run to fill half the running time (so we don't have to update too often)
             let count = Math.max(Math.floor((infection_length / 4) / ns.getHackTime(target)), 1)

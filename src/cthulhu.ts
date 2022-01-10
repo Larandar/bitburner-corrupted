@@ -120,6 +120,13 @@ export async function spreadCorruption(ns: NS): Promise<string[]> {
     return corrupted
 }
 
+// Unsuported public API yet for autocomplete
+type ServerData = { [key: string]: any }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function autocomplete(data: ServerData, args: string[]): string[] {
+    return ["--bootstrap", "--corrupt-only"]
+}
+
 // !SECTION
 
 // SECTION: Low level API

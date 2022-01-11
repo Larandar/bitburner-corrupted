@@ -1,4 +1,5 @@
 import { NodeStats, NS } from '../NetscriptDefinitions';
+import { randomName, uuid } from './_necronomicon/naming';
 
 /**
  * Grow the cult size by recuiting Nethack and Servers.
@@ -6,11 +7,19 @@ import { NodeStats, NS } from '../NetscriptDefinitions';
  * @param {NS} ns NetScript object
  */
 export async function main(ns: NS): Promise<void> {
-    let hacknetRecruits: HacknetRecruits = { purchasedNodes: 0, purchasedLevels: 0, purchasedRam: 0, purchasedCores: 0 }
+    let cultRecruits = 0
+    while (await shouldContinue(ns)) {
+        let recruitmentRound = await recruitServer(ns)
+        if (!recruitmentRound) break
 
+        cultRecruits++
+
+        await ns.sleep(1)
+    }
+
+    let hacknetRecruits: HacknetRecruits = { purchasedNodes: 0, purchasedLevels: 0, purchasedRam: 0, purchasedCores: 0 }
     while (await shouldContinue(ns)) {
         let recruitmentRound = await recruitHacknet(ns)
-
         if (recruitmentRound.purchasedNodes == 0) break
 
         hacknetRecruits.purchasedNodes += recruitmentRound.purchasedNodes
@@ -18,10 +27,10 @@ export async function main(ns: NS): Promise<void> {
         hacknetRecruits.purchasedRam += recruitmentRound.purchasedRam
         hacknetRecruits.purchasedCores += recruitmentRound.purchasedCores
 
-        await ns.sleep(1000)
+        await ns.sleep(1)
     }
 
-    notifyCultLeader(ns, hacknetRecruits)
+    notifyCultLeader(ns, cultRecruits, hacknetRecruits)
 }
 
 /**
@@ -71,9 +80,47 @@ export async function shouldContinue(ns: NS): Promise<boolean> {
 }
 
 /**
+ * Recruit a server if possible, replacing old ones if needed.
+ *
+ * @param {NS} ns NetScript object
+ * @returns if the cult leader recruited (or replaced) a member
+ */
+export async function recruitServer(ns: NS): Promise<boolean> {
+    // Max cost we are ready to spend
+    let maxCost = await purchaseMaxCost(ns) * 8
+    if (ns.getServerMoneyAvailable("home") < maxCost) return false
+
+    // Get the best server
+    let purchasedServers = ns.scan("home").filter(s => s.startsWith("cult1st-"))
+    let purchaseRam = purchasedServers.map(s => ns.getServerMaxRam(s)).reduce((a, b) => Math.max(a, b), 8)
+
+    // We can't afford to buy a new server
+    if (ns.getPurchasedServerCost(purchaseRam) > maxCost) return false
+
+    // Try to grow the ram amount
+    while (ns.getPurchasedServerCost(purchaseRam * 2) < maxCost) purchaseRam *= 2
+    purchaseRam = Math.min(ns.getPurchasedServerMaxRam(), purchaseRam)
+
+    // Make a name for the new server
+    let serverName = await generateServerName(ns)
+
+    // We can afford to delete a server if it has less RAM
+    if (purchasedServers.length == ns.getPurchasedServerLimit()) {
+        let serverToReplace = purchasedServers.reduce((a, b) => ns.getServerMaxRam(a) < ns.getServerMaxRam(b) ? a : b)
+        if (ns.getServerMaxRam(serverToReplace) > purchaseRam) return false
+
+        ns.deleteServer(serverToReplace)
+        serverName = serverToReplace
+    }
+
+    // Purchase the server
+    return ns.purchaseServer(serverName, purchaseRam) !== ""
+}
+
+/**
  * Recruit Hacknet nodes.
  *
- * @param ns NetScript object
+ * @param {NS} ns NetScript object
  * @returns Amount of recruits and upgrades purchased.
  */
 type HacknetRecruits = { purchasedNodes: number, purchasedLevels: number, purchasedRam: number, purchasedCores: number }
@@ -133,11 +180,24 @@ export async function listNodes(ns: NS): Promise<NodeStats[]> {
 /**
  * Compute the total production of the hacknet nodes.
  *
- * @param ns NetScript object
+ * @param {NS} ns NetScript object
  * @returns Total $/sec of the hacknet nodes.
  */
 export async function totalProduction(ns: NS): Promise<number> {
     return (await listNodes(ns)).reduce((total, node) => total + node.production, 0)
+}
+
+/**
+ * Generate a random name for a new server, with insurance that no other server is named the same.
+ *
+ * @param {NS} ns NetScript object
+ * @returns a server name that does not exist.
+ */
+export async function generateServerName(ns: NS): Promise<string> {
+    while (true) {
+        let serverName = `cult1st-${randomName()}-${uuid().split('-')[0]}`
+        if (!ns.serverExists(serverName)) return serverName
+    }
 }
 
 /**
@@ -146,9 +206,13 @@ export async function totalProduction(ns: NS): Promise<number> {
  * @param {NS} ns NetScript object
  * @param {HacknetRecruits} hacknetRecruits Hacknet Recruits.
  */
-export async function notifyCultLeader(ns: NS, hacknetRecruits: HacknetRecruits): Promise<void> {
+export async function notifyCultLeader(ns: NS, cultRecruits: number, hacknetRecruits: HacknetRecruits): Promise<void> {
+    if (cultRecruits > 0) {
+        ns.toast(`[[ ATLACH-NACHA ]] >> Recruited ${cultRecruits} servers.`)
+    }
+
     if (hacknetRecruits.purchasedNodes > 0 || hacknetRecruits.purchasedLevels > 0 || hacknetRecruits.purchasedRam > 0 || hacknetRecruits.purchasedCores > 0) {
-        let upgrades = [`[[ ATLACH-NACHA HAS GROWN THE CULT ]] >>`]
+        let upgrades = [`[[ ATLACH-NACHA ]] >>`]
 
         if (hacknetRecruits.purchasedNodes > 0) {
             upgrades.push(`Recruited ${hacknetRecruits.purchasedNodes} nodes.`)
@@ -165,8 +229,8 @@ export async function notifyCultLeader(ns: NS, hacknetRecruits: HacknetRecruits)
             upgrades.push(nodeUpgrades.join(', ') + ".")
         }
 
-        ns.toast(upgrades.join(" "), "success", 5000)
+        ns.toast(upgrades.join(" "))
     } else {
-        ns.toast(`[[ ATLACH-NACHA FOUND GROWING THE CULT TOO EXPENSIVE ]]`, "warning", 2000)
+        ns.toast(`[[ ATLACH-NACHA ]] >> Growing the cult hacknet is too expensive`, "warning")
     }
 }

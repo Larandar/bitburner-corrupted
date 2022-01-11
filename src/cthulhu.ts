@@ -1,6 +1,7 @@
 /**
  * Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn
  */
+import { availableRamGB } from '_necronomicon/utils';
 import { NS } from '../NetscriptDefinitions';
 
 // SECTION: High level API
@@ -40,6 +41,12 @@ export async function main(ns: NS): Promise<void> {
         "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn!"
     ].join(" > "), "success", 10000)
 
+    // Wake up the sleeping old-ones
+    if (await availableRamGB(ns) > 12) {
+        ns.exec("atlach-nacha.js", ns.getHostname())
+        await ns.sleep(1000)
+    }
+
     // Spread the corruption
     const corrupted = await spreadCorruption(ns)
     const subdued = corrupted.filter(server =>
@@ -75,9 +82,7 @@ export async function main(ns: NS): Promise<void> {
     }
 
     // Wake up the sleeping old-ones
-    let availableRamGB = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
-    if (availableRamGB > 12) ns.exec("atlach-nacha.js", ns.getHostname())
-    if (!args["corrupt-only"] && availableRamGB > 6) {
+    if (!args["corrupt-only"] && await availableRamGB(ns) > 6) {
         ns.ps(ns.getHostname())
             .filter(process => process.filename == "zvilpogghua.js")
             .forEach(process => ns.kill(process.filename, ns.getHostname(), ...process.args))

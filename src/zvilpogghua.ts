@@ -102,7 +102,6 @@ export async function chooseSacrifice(ns: NS): Promise<string> {
 
     let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"]
         .filter(s => subdued.has(s))
-        .filter((_, i) => i < 3)
 
     if (juiceiests.length == 0) {
         ns.toast("[[ YOG-SOTHOTH SHIM ]] !! No corrupted servers found !!", "error", 1000)

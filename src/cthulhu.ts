@@ -1,9 +1,9 @@
 /**
  * Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn
  */
-import { availableRamGB } from '_necronomicon/utils';
 import { NS } from '../NetscriptDefinitions';
-import { CthulhuStore, writeStore } from './_necronomicon/store';
+import { CthulhuStore, loadStore, writeStore } from './_necronomicon/store';
+import { availableRamGB } from './_necronomicon/utils';
 
 // SECTION: High level API
 
@@ -21,7 +21,7 @@ export async function main(ns: NS): Promise<void> {
     ])
     if (args.help || args._.length > 0) {
         ns.tprint([
-            `Usage: run ${ns.getScriptName()} [--corrupt-only]`,
+            `Usage: run ${ns.getScriptName()} [--bootstrap] [--corrupt-only]`,
             `Pray to the great Cthulhu that corruption be spread.`,
             `Flags:`,
             `  --bootstrap: Start the one-time only scripts (exploit of n00dles).`,
@@ -102,6 +102,11 @@ export async function spreadCorruption(ns: NS): Promise<string[]> {
 
     // Start spreading corruption from current server
     let queue: string[] = [ns.getHostname()]
+
+    // Load previous store value to hasten the exploration process
+    let previousScan = (await loadStore<CthulhuStore>(ns, "cthulhu"))?.corrupted
+    if (previousScan !== undefined) queue.push(...corrupted)
+
     while (queue.length > 0) {
         // Get next server to scan
         const target = queue.pop() as string
@@ -116,10 +121,10 @@ export async function spreadCorruption(ns: NS): Promise<string[]> {
         }
 
         // Continue spreading corruption from target server
-        queue.push(...ns.scan(target))
+        queue.push(...ns.scan(target).filter(s => !scanned.has(s)))
 
         // Wait a bit to avoid spamming the event loop
-        await ns.sleep(100)
+        await ns.sleep(1)
     }
 
     return corrupted

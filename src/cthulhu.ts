@@ -40,11 +40,10 @@ export async function main(ns: NS): Promise<void> {
     ns.toast([
         "[[ PRAISED BE CTHULHU ]]",
         "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn!"
-    ].join(" > "), "success", 10000)
+    ].join(" > "), "success")
 
     // Wake up the sleeping old-ones
-    if (await availableRamGB(ns) > 12) {
-        ns.exec("atlach-nacha.js", ns.getHostname())
+    if (await startService(ns, "atlach-nacha", 16)) {
         await ns.sleep(1000)
     }
 
@@ -82,11 +81,11 @@ export async function main(ns: NS): Promise<void> {
     }
 
     // Wake up the sleeping old-ones
-    if (!args["corrupt-only"] && await availableRamGB(ns) > 6) {
+    if (!args["corrupt-only"]) {
         ns.ps(ns.getHostname())
             .filter(process => process.filename == "zvilpogghua.js")
             .forEach(process => ns.kill(process.filename, ns.getHostname(), ...process.args))
-        ns.spawn("zvilpogghua.js")
+        await startService(ns, "zvilpogghua")
     }
 }
 
@@ -140,6 +139,25 @@ export function autocomplete(data: ServerData, args: string[]): string[] {
 // !SECTION
 
 // SECTION: Low level API
+
+/**
+ * Start a service, ensuring that ram is not saturated
+ *
+ * @param ns Netscript object
+ * @param service service name
+ * @param ramAllocation ensure the ammount of RAM GB will be available after starting (else don't start)
+ * @returns if the service have been started
+ */
+export async function startService(ns: NS, service: string, ramAllocation: number | undefined = undefined): Promise<boolean> {
+    // Assert service scroipt exists
+    if (!ns.fileExists(`${service}.js`)) throw new Error(`Undefined service: ${service}`)
+
+    // Allocate the ram for the service
+    if (ns.getScriptRam(`${service}.js`) <= await availableRamGB(ns) + (ramAllocation ?? 0)) {
+        return ns.exec(`${service}.js`, ns.getHostname()) != 0
+    }
+    return false
+}
 
 /**
  * Breach the target server and deploy corruption script.

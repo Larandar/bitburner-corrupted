@@ -1,4 +1,5 @@
 import { NS } from '../NetscriptDefinitions';
+import { CthulhuStore, loadStore } from './_necronomicon/store';
 
 const SILENT_FUNCTIONS = [
     "disableLog",
@@ -79,13 +80,6 @@ export async function main(ns: NS): Promise<void> {
     ns.spawn("cthulhu.js")
 }
 
-export async function loadStore(ns: NS, service: string): Promise<{ [key: string]: any }> {
-    if (ns.fileExists(`/_store/${service}.txt`, ns.getHostname())) {
-        return JSON.parse(await ns.read(`/_store/${service}.txt`))
-    }
-    return {}
-}
-
 /**
  * Choose the juiceiest sacrifice from the predefined list in case there is Yog-Sothoth is not running
  *
@@ -97,8 +91,8 @@ export async function chooseSacrifice(ns: NS): Promise<string> {
     // TODO: Interoperation with Yog-Sothoth
     // NOTE: This is a very naive implementation
 
-    let cthulhu = (await loadStore(ns, "cthulhu")) as { [key: string]: string[] }
-    const subdued: Set<string> = new Set(cthulhu.subdued)
+    let cthulhu: CthulhuStore | undefined = await loadStore(ns, "cthulhu")
+    const subdued: Set<string> = new Set(cthulhu?.subdued)
 
     let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"]
         .filter(s => subdued.has(s))

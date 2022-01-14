@@ -3,6 +3,7 @@
  */
 import { availableRamGB } from '_necronomicon/utils';
 import { NS } from '../NetscriptDefinitions';
+import { CthulhuStore, writeStore } from './_necronomicon/store';
 
 // SECTION: High level API
 
@@ -53,8 +54,7 @@ export async function main(ns: NS): Promise<void> {
         ns.getServerRequiredHackingLevel(server) <= ns.getHackingLevel()
     )
     // Save corruption to global state
-    let store = { corrupted, subdued }
-    await ns.write("/_store/cthulhu.txt", [JSON.stringify(store)], "w")
+    await writeStore(ns, "cthulhu", { corrupted, subdued } as CthulhuStore)
 
     // Bootstrap the corruption
     if (args["bootstrap"]) {

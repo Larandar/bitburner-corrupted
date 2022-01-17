@@ -1,6 +1,9 @@
 import { NodeStats, NS } from '../NetscriptDefinitions';
 import { randomName, uuid } from './_necronomicon/naming';
 
+const RECRUITING_SERVERS = true
+const RECRUITING_HACKNET = false
+
 /**
  * Grow the cult size by recuiting Nethack and Servers.
  *
@@ -8,7 +11,7 @@ import { randomName, uuid } from './_necronomicon/naming';
  */
 export async function main(ns: NS): Promise<void> {
     let cultRecruits = 0
-    while (await shouldContinue(ns)) {
+    while (await shouldContinue(ns) && RECRUITING_SERVERS) {
         let recruitmentRound = await recruitServer(ns)
         if (!recruitmentRound) break
 
@@ -18,7 +21,7 @@ export async function main(ns: NS): Promise<void> {
     }
 
     let hacknetRecruits: HacknetRecruits = { purchasedNodes: 0, purchasedLevels: 0, purchasedRam: 0, purchasedCores: 0 }
-    while (await shouldContinue(ns)) {
+    while (await shouldContinue(ns) && RECRUITING_HACKNET) {
         let recruitmentRound = await recruitHacknet(ns)
         if (recruitmentRound.purchasedNodes == 0) break
 

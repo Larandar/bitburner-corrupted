@@ -1,29 +1,24 @@
-import { NS } from '../NetscriptDefinitions';
+import { NS, Server } from '../NetscriptDefinitions';
+import { runFor } from './_necronomicon/control';
+import { Logger, LogLevel } from './_necronomicon/logger';
+import { uuid } from './_necronomicon/naming';
+import { availableRam } from './_necronomicon/servers';
 import { CthulhuStore, loadStore } from './_necronomicon/store';
 
-const SILENT_FUNCTIONS = [
-    "disableLog",
-    "sleep",
-    "getHackingLevel",
-    "getServerRequiredHackingLevel",
-    "getServerMaxMoney",
-    "getServerMinSecurityLevel",
-    "getServerSecurityLevel",
-    "getServerMoneyAvailable"
-]
-
-const INFECTION_LENGTH_PRE_100 = 60 * 1000 // 1 minutes
-const INFECTION_LENGTH_POST_100 = 2 * 60 * 1000 // 2 minutes
+const TARGET_TIME = 2 * 60 * 1000;
 
 /**
  * Let Zvilpoggha feast on the corrupted
  *
- * Read corrupted list from `/_store/cthulhu.json`
- *
  * @param {NS} ns NetScript object
  */
 export async function main(ns: NS): Promise<void> {
-    const args = ns.flags([["help", false]])
+    const args = ns.flags([
+        ["help", false],
+        ["verbose", false],
+        ["strategy", "default"],
+    ])
+
     if (args.help || args._.length > 0) {
         ns.tprint([
             `Usage: run ${ns.getScriptName()}`,
@@ -34,73 +29,174 @@ export async function main(ns: NS): Promise<void> {
         return
     }
 
+    if (SacrificeCeremonies[args.strategy] === undefined) {
+        ns.tprint([
+            `[ERROR]`,
+            `Unknown strategy: ${args.strategy}`,
+            `(available strategies: ${Object.keys(SacrificeCeremonies).join(", ")})`
+        ].join(" "))
+        return
+    }
+
     ns.toast([
         "[[ ALMIGHTY ZVILPOGGHUA WE SACRIFICE TO THY ]]",
     ].join(" > "), "success", 1000)
 
-    ns.print("[[ SILENCING THE VOICES ]]")
-    SILENT_FUNCTIONS.forEach(ns.disableLog)
 
-    let cthulhu = (await loadStore(ns, "cthulhu")) as { [key: string]: string[] }
-    const corrupted = cthulhu.corrupted.concat(["home"])
+    const log = new Logger(ns, args.verbose ? LogLevel.DEBUG : LogLevel.INFO)
 
-    const infection_length = ns.getHackingLevel() >= 100 ? INFECTION_LENGTH_POST_100 : INFECTION_LENGTH_PRE_100
-
-    let infection_id = [ns.getHostname(), ns.getScriptName(), performance.now()].join(":")
-    performance.mark(infection_id)
+    // Strategy object
+    let sacrificeCeremony = SacrificeCeremonies[args.strategy]
 
     // Sacrifice the corrupted to Zvilpogghua
-    while (performance.measure(infection_id, infection_id).duration < infection_length) {
-        for (let target of corrupted) {
-            let script = "/_corruption/brain-rot.js"
-            // Infection not yet finished
-            if (ns.scriptRunning("/_corruption/brain-rot.js", target)) continue
+    await runFor(ns, TARGET_TIME, async () => {
+        // Find all the corrupted servers available for the ceremony
+        let corruptedMembers = await findCorruptedMembers(ns)
 
+        log.debug(`Ceremony: ${args.strategy}, Corrupted members: ${corruptedMembers.length}`)
+        if (corruptedMembers.length == 0) return
 
-            let sacrifice = await chooseSacrifice(ns)
-            let availableRam = ns.getServerMaxRam(target) - ns.getServerUsedRam(target)
+        await sacrificeCeremony.sacrifice(ns, log, corruptedMembers)
+    }, 10000)
 
-            if (target == "home") availableRam -= 256 // 256GB RAM of reserve on home server
+    ns.spawn("cthulhu.js", 1, "--strategy", args.strategy)
+}
 
-            let possibleThreads = Math.floor(availableRam / ns.getScriptRam(script, target))
-            if (possibleThreads <= 0) continue
-
-            // Run to fill half the running time (so we don't have to update too often)
-            let count = Math.max(Math.floor((infection_length / 4) / ns.getHackTime(target)), 1)
-
-            ns.print(`Infecting ${target} with ${script} (${count}x)`)
-            ns.exec(script, target, possibleThreads, sacrifice, count)
-        }
-        await ns.sleep(1000)
-    }
-
-    performance.clearMarks(infection_id)
-    performance.clearMeasures(infection_id)
-
-    ns.spawn("cthulhu.js")
+export type CorruptionSlot = { server: Server, ram: number, cores: number }
+export const RAM_RESERVES: { [key: string]: number } = {
+    "home": 256,
 }
 
 /**
- * Choose the juiceiest sacrifice from the predefined list in case there is Yog-Sothoth is not running
+ * Find all the corrupted servers available for the ceremony using Cthulhu's store
  *
- * @param {NS} ns NetScript object
- *
- * @returns the choosen sacrifice
+ * @param ns NetScript object
+ * @returns Availables slots for ceremony
  */
-export async function chooseSacrifice(ns: NS): Promise<string> {
-    // TODO: Interoperation with Yog-Sothoth
-    // NOTE: This is a very naive implementation
+export async function findCorruptedMembers(ns: NS): Promise<CorruptionSlot[]> {
+    let cthulhu = (await loadStore(ns, "cthulhu")) as { [key: string]: string[] } | undefined
+    const corruptedNames = cthulhu?.corrupted.concat(["home"]) || ["home"]
+    return corruptedNames
+        // Fetch the server info
+        .map(hostname => ns.getServer(hostname))
+        // Convert to a slot oject
+        .map(server => {
+            // Remove reserved ram for named servers
+            let ram = availableRam(ns, server.hostname) - (RAM_RESERVES[server.hostname] ?? 0)
 
-    let cthulhu: CthulhuStore | undefined = await loadStore(ns, "cthulhu")
-    const subdued: Set<string> = new Set(cthulhu?.subdued)
+            return {
+                server,
+                ram,
+                cores: server.cpuCores
+            } as CorruptionSlot
+        })
+        // Filter out servers with no ram (so no slots on them)
+        .filter(slot => slot.ram > 4)
+}
 
-    let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"]
-        .filter(s => subdued.has(s))
+interface ISacrificeCeremony {
+    sacrifice(ns: NS, log: Logger, corruptionSlots: CorruptionSlot[]): Promise<void>
+}
 
-    if (juiceiests.length == 0) {
-        ns.toast("[[ YOG-SOTHOTH SHIM ]] !! No corrupted servers found !!", "error", 1000)
-        ns.exit()
+class JuicySacrificing implements ISacrificeCeremony {
+    constructor(private readonly corruptionScript: string) { }
+
+    private get corruptionPath(): string {
+        return `/_corruption/${this.corruptionScript}.js`
     }
 
-    return juiceiests[Math.floor(Math.random() * juiceiests.length)] as string
+
+    async chooseJuicySacrifice(ns: NS): Promise<Server> {
+        // NOTE: This is a very naive implementation, Yog-Sothoth should be able to do this better,
+        //       but this is mainly for fallback or mass drain.
+
+        let cthulhu: CthulhuStore | undefined = await loadStore(ns, "cthulhu")
+        const subdued: Set<string> = new Set(cthulhu?.subdued)
+
+        let juiceiests = ["powerhouse-fitness", "phantasy", "zer0", "joesguns", "n00dles"]
+            .filter(s => subdued.has(s))
+
+        if (juiceiests.length == 0) {
+            ns.toast("[[ YOG-SOTHOTH SHIM ]] !! No corrupted servers found !!", "error", 1000)
+            ns.exit()
+        }
+
+        let juicy = juiceiests[Math.floor(Math.random() * juiceiests.length)] as string
+        return ns.getServer(juicy)
+    }
+
+    async sacrifice(ns: NS, log: Logger, corruptionSlots: CorruptionSlot[]): Promise<void> {
+        let sacrificeUid = `sacrifice-${uuid().split("-")[0]}`
+        for (const corruptionSlot of corruptionSlots) {
+            let juiceiest = await this.chooseJuicySacrifice(ns)
+
+            let numThreads = Math.floor(corruptionSlot.ram / ns.getScriptRam(this.corruptionPath))
+            if (numThreads <= 0) continue
+
+            let numberOfSacrifices: number = Math.ceil((2 * 60 * 1000) / ns.getHackTime(juiceiest.hostname))
+
+            log.debug(`${corruptionSlot.server.hostname} -t ${numThreads} (${corruptionSlot.ram}GB / ${ns.getScriptRam(this.corruptionPath)}GB)`)
+
+            let pid = ns.exec(
+                this.corruptionPath,
+                corruptionSlot.server.hostname,
+                numThreads,
+                `--uid=${sacrificeUid}-${corruptionSlot.server.hostname}`,
+                juiceiest.hostname,
+                numberOfSacrifices
+            )
+
+            if (pid != 0) {
+                log.info(`Sharing ${numThreads} threads on ${corruptionSlot.server.hostname}`)
+            } else {
+                log.error(`Failed to start ${this.corruptionScript} on ${corruptionSlot.server.hostname}`)
+            }
+        }
+    }
+
+}
+
+class YogSorothDelegate implements ISacrificeCeremony {
+    constructor(private readonly fallback: ISacrificeCeremony) { }
+
+    async sacrifice(ns: NS, log: Logger, corruptionSlots: CorruptionSlot[]): Promise<void> {
+        // TODO: Interoperation with Yog-Sothoth (if running)
+        // NOTE: This is just the fallback implementation
+        return this.fallback.sacrifice(ns, log, corruptionSlots)
+    }
+}
+
+class SharingCeremony implements ISacrificeCeremony {
+    protected static SHARING_TIME: number = 2 * 60 * 1000
+    protected static SCRIPT_PATH: string = `/_corruption/share.js`
+
+    async sacrifice(ns: NS, log: Logger, corruptionSlots: CorruptionSlot[]): Promise<void> {
+        let sharingId = `share-${uuid().split("-")[0]}`
+        for (const corruptionSlot of corruptionSlots) {
+            let numThreads = Math.floor(corruptionSlot.ram / ns.getScriptRam(SharingCeremony.SCRIPT_PATH))
+            if (numThreads <= 0) continue
+
+            let pid = ns.exec(
+                SharingCeremony.SCRIPT_PATH,
+                corruptionSlot.server.hostname,
+                numThreads,
+                `--uid=${sharingId}-${corruptionSlot.server.hostname}`,
+                SharingCeremony.SHARING_TIME / 10000
+            )
+
+            if (pid != 0) {
+                log.info(`Sharing ${numThreads} threads on ${corruptionSlot.server.hostname}`)
+            } else {
+                log.error(`Failed to start sharing on ${corruptionSlot.server.hostname}`)
+            }
+        }
+    }
+}
+
+
+const SacrificeCeremonies: { [key: string]: ISacrificeCeremony } = {
+    "default": new YogSorothDelegate(new JuicySacrificing("brain-rot")),
+    "yog-sothoth": new YogSorothDelegate(new JuicySacrificing("brain-rot")),
+    "brain-rot": new JuicySacrificing("brain-rot"),
+    "share": new SharingCeremony(),
 }

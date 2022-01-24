@@ -2,8 +2,8 @@
  * Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn
  */
 import { NS } from '../NetscriptDefinitions';
+import { availableRam } from './_necronomicon/servers';
 import { CthulhuStore, loadStore, writeStore } from './_necronomicon/store';
-import { availableRamGB } from './_necronomicon/utils';
 
 // SECTION: High level API
 
@@ -16,6 +16,7 @@ import { availableRamGB } from './_necronomicon/utils';
 export async function main(ns: NS): Promise<void> {
     const args = ns.flags([
         ["help", false],
+        ["strategy", "default"],
     ])
     if (args.help || args._.length > 0) {
         ns.tprint([
@@ -51,10 +52,7 @@ export async function main(ns: NS): Promise<void> {
     await writeStore(ns, "cthulhu", { corrupted, subdued } as CthulhuStore)
 
     // Wake up the sleeping old-ones
-    ns.ps(ns.getHostname())
-        .filter(process => process.filename == "zvilpogghua.js")
-        .forEach(process => ns.kill(process.filename, ns.getHostname(), ...process.args))
-    await startService(ns, "zvilpogghua")
+    await startService(ns, "zvilpogghua", 4, `--strategy=${args.strategy}`)
 }
 
 
@@ -101,7 +99,15 @@ export async function spreadCorruption(ns: NS): Promise<string[]> {
 type ServerData = { [key: string]: any }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function autocomplete(data: ServerData, args: string[]): string[] {
-    return ["--bootstrap", "--corrupt-only"]
+    let last = args[args.length - 1]
+    if (!last || last.startsWith("-")) return ["--help", "--strategy"]
+
+    if (last == "--help") return []
+    if (args.slice(-2).includes("--strategy")) {
+        return ["default", "yog-sothoth", "brain-rot", "drain-all", "share"]
+    }
+
+    return []
 }
 
 // !SECTION
@@ -114,17 +120,31 @@ export function autocomplete(data: ServerData, args: string[]): string[] {
  * @param ns Netscript object
  * @param service service name
  * @param ramAllocation ensure the ammount of RAM GB will be available after starting (else don't start)
- * @returns if the service have been started
+ * @returns PID of the service if the service have been started
  */
-export async function startService(ns: NS, service: string, ramAllocation: number | undefined = undefined): Promise<boolean> {
+export async function startService(
+    ns: NS,
+    service: string,
+    ramAllocation: number | undefined = undefined,
+    ...serviceArgs: (string | number | boolean)[]
+): Promise<number | undefined> {
     // Assert service scroipt exists
     if (!ns.fileExists(`${service}.js`)) throw new Error(`Undefined service: ${service}`)
 
+    // Services are exclusive, so we kill all other instances of the same service
+    ns.ps(ns.getHostname())
+        .filter(process => process.filename == `${service}.js`)
+        .forEach(process => ns.kill(process.pid))
+
     // Allocate the ram for the service
-    if (ns.getScriptRam(`${service}.js`) <= await availableRamGB(ns) + (ramAllocation ?? 0)) {
-        return ns.exec(`${service}.js`, ns.getHostname()) != 0
+    if (ns.getScriptRam(`${service}.js`) <= availableRam(ns) - (ramAllocation ?? 0)) {
+        let pid = ns.run(`${service}.js`, 1, ...serviceArgs)
+        // Script started successfully
+        if (0 < pid) return pid
     }
-    return false
+
+    // Could not start service
+    return undefined
 }
 
 /**

@@ -1,15 +1,14 @@
-import { NS } from '../../NetscriptDefinitions';
+export const $ = eval("window.docu" + "ment") as Document
 
-/**
- * Return the available ram on the given server
- *
- * @param {NS} ns NetScript object
- * @returns {number} The available ram in GB
- */
-export async function availableRamGB(ns: NS, server: string | undefined = undefined): Promise<number> {
-    if (server === undefined) server = ns.getHostname()
-    return ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname())
+export function props(e: Element): any {
+    // @ts-ignore: React props
+    return e[Object.keys(e)[1]] as any
 }
+
+export function click(e: Element) {
+    props(e).onClick({ isTrusted: true })
+}
+
 
 /**
  * Run the given commands in the terminal.
@@ -22,7 +21,7 @@ export async function terminalCommand(...commands: string[]) {
     const input = d.getElementById("terminal-input") as HTMLInputElement
     input.value = commands.join("; ")
     // @ts-ignore: React event handler
-    const handler: any = input[Object.keys(input)[1]]
+    const handler: any = props(input)
     handler.onChange({ target: input })
     handler.onKeyDown({ keyCode: 13, preventDefault: () => null })
 }

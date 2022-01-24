@@ -7,6 +7,11 @@ export function randomName() {
     return `${adjective}-${noun}`
 }
 
+/**
+ * Create a valid UUID v4 random string (RFC4122)
+ *
+ * @returns {string}  xxxxxxx-xxxx-4xxx-xxx-xxxxxxxxxxx
+ */
 export function uuid() {
     return `${1e7}-${1e3}-${4e3}-${8e3}-${1e11}`.replace(/[018]/g, c =>
         (parseInt(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> parseInt(c) / 4).toString(16)

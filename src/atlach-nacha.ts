@@ -1,5 +1,5 @@
 import { NodeStats, NS } from '../NetscriptDefinitions';
-import { randomName, uuid } from './_necronomicon/naming';
+import { uuid } from './_necronomicon/naming';
 
 const RECRUITING_SERVERS = true
 const RECRUITING_HACKNET = false
@@ -198,7 +198,7 @@ export async function totalProduction(ns: NS): Promise<number> {
  */
 export async function generateServerName(ns: NS): Promise<string> {
     while (true) {
-        let serverName = `cult1st-${randomName()}-${uuid().split('-')[0]}`
+        let serverName = `cult1st-${uuid().split('-')[1]}`
         if (!ns.serverExists(serverName)) return serverName
     }
 }

@@ -22,7 +22,10 @@ const THRESHOLD_MAX_SECURITY = 2.5
  * @param {NS} ns NetScript object
  */
 export async function main(ns: NS): Promise<void> {
-    const args = ns.flags([["help", false], ["corrupt-only", false]])
+    const args = ns.flags([
+        ["help", false],
+        ["uid", "null"],
+    ])
     if (args.help || args._.length > 2) {
         ns.tprint([
             `Usage: run ${ns.getScriptName()} [SACRIFICE [COUNT]]`,

@@ -34,9 +34,9 @@ export async function main(ns: NS): Promise<void> {
     }
 
     ns.toast([
-        "[[ PRAISED BE CTHULHU ]]",
-        "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn!"
-    ].join(" > "), "success")
+        "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn!",
+        "[[ CTHULHU ]]",
+    ].join(" << "), "success")
 
     // Wake up the sleeping old-ones
     if (await startService(ns, "atlach-nacha", 16)) {
@@ -163,7 +163,10 @@ export async function breach(ns: NS, target: string): Promise<boolean> {
     // Skip if already breached
     if (!ns.hasRootAccess(target)) {
         if (ns.getServerNumPortsRequired(target) >= 6) {
-            ns.toast(`[[ BREACHING: ${target} ]] !! ERROR: requires 6 or more opened ports`, "warning", 2500)
+            ns.toast([
+                `ERROR: requires 6 or more opened ports`,
+                `[[ BREACHING: ${target} ]]`,
+            ].join(` !! `), "warning", 2500)
             return false
         }
 

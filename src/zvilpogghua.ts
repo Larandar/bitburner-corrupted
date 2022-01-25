@@ -39,8 +39,9 @@ export async function main(ns: NS): Promise<void> {
     }
 
     ns.toast([
-        "[[ ALMIGHTY ZVILPOGGHUA WE SACRIFICE TO THY ]]",
-    ].join(" > "), "success", 1000)
+        "We sacrifice to thy!",
+        "[[ ZVILPOGGHUA ]]",
+    ].join(" << "), "success")
 
 
     const log = new Logger(ns, args.verbose ? LogLevel.DEBUG : LogLevel.INFO)

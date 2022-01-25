@@ -211,11 +211,14 @@ export async function generateServerName(ns: NS): Promise<string> {
  */
 export async function notifyCultLeader(ns: NS, cultRecruits: number, hacknetRecruits: HacknetRecruits): Promise<void> {
     if (cultRecruits > 0) {
-        ns.toast(`[[ ATLACH-NACHA ]] >> Recruited ${cultRecruits} servers.`)
+        ns.toast([
+            `Recruited ${cultRecruits} servers.`,
+            `[[ ATLACH-NACHA ]]`,
+        ].join(" << "), "success")
     }
 
     if (hacknetRecruits.purchasedNodes > 0 || hacknetRecruits.purchasedLevels > 0 || hacknetRecruits.purchasedRam > 0 || hacknetRecruits.purchasedCores > 0) {
-        let upgrades = [`[[ ATLACH-NACHA ]] >>`]
+        let upgrades = [`<< [[ ATLACH-NACHA ]]`]
 
         if (hacknetRecruits.purchasedNodes > 0) {
             upgrades.push(`Recruited ${hacknetRecruits.purchasedNodes} nodes.`)
@@ -232,8 +235,11 @@ export async function notifyCultLeader(ns: NS, cultRecruits: number, hacknetRecr
             upgrades.push(nodeUpgrades.join(', ') + ".")
         }
 
-        ns.toast(upgrades.join(" "))
+        ns.toast(upgrades.reverse().join(" "))
     } else {
-        ns.toast(`[[ ATLACH-NACHA ]] >> Growing the cult hacknet is too expensive`, "warning")
+        ns.toast([
+            `Growing the cult hacknet is too expensive`,
+            `[[ ATLACH-NACHA ]]`,
+        ].join(" << "), "warning")
     }
 }

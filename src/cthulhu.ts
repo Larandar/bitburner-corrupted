@@ -156,6 +156,10 @@ export async function startService(
  * @param {string} target Target server
  **/
 export async function breach(ns: NS, target: string): Promise<boolean> {
+    // Transfer updated version of scripts
+    let scripts = ns.ls("home").filter(f => f.startsWith("/_corruption/") && f.endsWith(".js"))
+    await ns.scp(scripts, "home", target)
+
     // Skip if already breached
     if (!ns.hasRootAccess(target)) {
         if (ns.getServerNumPortsRequired(target) >= 6) {
@@ -199,9 +203,7 @@ export async function breach(ns: NS, target: string): Promise<boolean> {
         ns.toast(`[[ BREACHING: ${target} ]] ** Root access acquired **`, "success", 1000)
     }
 
-    // Transfer updated version of scripts
-    let scripts = ns.ls("home").filter(f => f.startsWith("/_corruption/") && f.endsWith(".js"))
-    return await ns.scp(scripts, "home", target)
+    return true
 }
 
 // !SECTION
